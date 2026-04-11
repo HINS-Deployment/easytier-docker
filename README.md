@@ -1,0 +1,124 @@
+# EasyTier Docker
+
+[![Release](https://github.com/MajoSissi/easytier-docker/actions/workflows/build-release.yml/badge.svg)](https://github.com/MajoSissi/easytier-docker/actions/workflows/build-release.yml)
+[![Pre-release](https://github.com/MajoSissi/easytier-docker/actions/workflows/build-pre.yml/badge.svg)](https://github.com/MajoSissi/easytier-docker/actions/workflows/build-pre.yml)
+[![CI](https://github.com/MajoSissi/easytier-docker/actions/workflows/build-ci.yml/badge.svg)](https://github.com/MajoSissi/easytier-docker/actions/workflows/build-ci.yml)
+
+[EasyTier](https://github.com/EasyTier/EasyTier) 发布新版本时，自动构建并发布 Docker 镜像
+
+## Compose
+
+### 完整版 ( Core 组网 + Web 控制台 )
+
+<!-- BEGIN_COMPOSE_CORE -->
+```yaml
+# Core + Web 控制台一体部署
+# 镜像说明: https://hub.docker.com/r/majosissi/easytier
+services:
+  easytier:
+    # majosissi/easytier:latest  最新 Release 正式版
+    # majosissi/easytier:pre     最新 Pre-release 预览版
+    # majosissi/easytier:ci      最新 Action 构建版 (合并主线的版本, 自动更新, 稳定性不保证)
+    image: majosissi/easytier:latest
+    container_name: easytier
+    restart: always
+    network_mode: host
+    environment:
+      - TZ=Asia/Shanghai
+      # -------------------------------------------
+      # 连接其他远程 Web 控制台
+      # 设置后会忽略 WEB_USERNAME, 不可同时连接多个 Web, 但仍可启用本地控制台
+      # 示例: udp://api.web.com:22020/username
+      # 默认: 无
+      # - WEB_REMOTE_API=协议://主机:端口/用户名
+      # -------------------------------------------
+      # 是否启用 Web 管理界面 
+      # 默认: false
+      - WEB_ENABLE=false
+      # -------------------------------------------
+      # 是否禁止注册新用户 (内置用户: admin, 密码: admin, 登录后右上角可修改密码)
+      # 默认: true
+      - WEB_DISABLE_REGISTRATION=true
+      # -------------------------------------------
+      # Web 管理用户名; 设置 WEB_REMOTE_API 时此项无效
+      # 启用 Web 且提供用户名时将自动连接本地控制台
+      # 自定义用户名，需要先手动注册对应用户名才行 
+      # 默认: 无
+      - WEB_USERNAME=admin
+      # -------------------------------------------
+      # Web 前端默认连接的后端 API HOST
+      # 默认: http://127.0.0.1:11211
+      - WEB_DEFAULT_API_HOST=http://修改为你的主机:11211
+      # -------------------------------------------
+      # Web 访问端口
+      # 默认: 11211
+      - WEB_PORT=11211
+      # -------------------------------------------
+      # Web 管理服务 (RPC) 监听端口, Core 将通过此端口连接
+      # 默认: 22020
+      - WEB_SERVER_PORT=22020
+      # -------------------------------------------
+      # Web 管理服务 (RPC) 协议, 可与其他节点的 -w 参数保持一致
+      # 默认: udp - 可选: [udp | tcp | ws]
+      - WEB_SERVER_PROTOCOL=udp
+      # -------------------------------------------
+      # Web 服务日志级别 
+      # 默认: warn - 可选: [off | error | warn | info | debug | trace] 
+      - WEB_LOG_LEVEL=warn
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    volumes:
+      - ./data:/app/data
+```
+<!-- END_COMPOSE_CORE -->
+
+### 仅 Web 版 ( Web 控制台 )
+
+<!-- BEGIN_COMPOSE_WEB -->
+```yaml
+# 单 Web 控制台部署
+# 镜像说明: https://hub.docker.com/r/majosissi/easytier-web
+services:
+  easytier-web:
+    # majosissi/easytier-web:latest  最新 Release 正式版
+    # majosissi/easytier-web:pre     最新 Pre-release 预览版
+    # majosissi/easytier-web:ci      最新 Action 构建版 (合并主线的版本, 自动更新, 稳定性不保证)
+    image: majosissi/easytier-web:latest
+    container_name: easytier-web
+    restart: always
+    network_mode: bridge
+    ports:
+      - 11211:11211
+      - 22020:22020
+    environment:
+      - TZ=Asia/Shanghai
+      # -------------------------------------------
+      # 是否禁止注册新用户 (默认用户: admin, 密码: admin)
+      # 默认: false
+      - WEB_DISABLE_REGISTRATION=false
+      # -------------------------------------------
+      # Web 前端默认连接的后端 API HOST
+      # 默认: http://127.0.0.1:11211
+      - WEB_DEFAULT_API_HOST=http://修改为你的主机:11211
+      # -------------------------------------------
+      # Web 访问端口
+      # 默认: 11211
+      - WEB_PORT=11211
+      # Web 管理服务 (RPC) 监听端口, Core 将通过此端口连接
+      # 默认: 22020
+      - WEB_SERVER_PORT=22020
+      # -------------------------------------------
+      # Web 管理服务 (RPC) 协议, 可与其他节点的 -w 参数保持一致
+      # 默认: udp - 可选: [udp | tcp | ws]
+      - WEB_SERVER_PROTOCOL=udp
+      # -------------------------------------------
+      # Web 服务日志级别 
+      # 默认: warn - 可选: [off | error | warn | info | debug | trace] 
+      - WEB_LOG_LEVEL=warn
+    volumes:
+      - ./data:/app/data
+```
+<!-- END_COMPOSE_WEB -->
