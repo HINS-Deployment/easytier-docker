@@ -22,9 +22,21 @@ services:
     image: majosissi/easytier:latest
     container_name: easytier
     restart: always
+    # 限制容器输出日志的大小和数量, 建议启用
+    logging:
+      driver: "json-file"
+      options:
+        # 单个日志文件的最大大小  
+        max-size: "10m"
+        # 最多保留的日志文件数量
+        max-file: "3"
     network_mode: host
     environment:
       - TZ=Asia/Shanghai
+      # -------------------------------------------
+      # 自定义节点主机名, 可用于 Web 控制台显示和区分不同节点
+      # 默认: 无
+      # - HOSTNAME=node1
       # -------------------------------------------
       # 连接其他远程 Web 控制台
       # 设置后会忽略 WEB_USERNAME, 不可同时连接多个 Web, 但仍可启用本地控制台
@@ -36,9 +48,9 @@ services:
       # 默认: false
       - WEB_ENABLE=false
       # -------------------------------------------
-      # 是否禁止注册新用户 (内置用户: admin, 密码: admin, 登录后右上角可修改密码)
-      # 默认: true
-      - WEB_DISABLE_REGISTRATION=true
+      # 是否允许注册新用户 (内置用户: admin, 密码: admin, 登录后右上角可修改密码)
+      # 默认: false
+      - WEB_ENABLE_REGISTRATION=false
       # -------------------------------------------
       # Web 管理用户名; 设置 WEB_REMOTE_API 时此项无效
       # 启用 Web 且提供用户名时将自动连接本地控制台
@@ -46,7 +58,7 @@ services:
       # 默认: 无
       - WEB_USERNAME=admin
       # -------------------------------------------
-      # Web 前端默认连接的后端 API HOST
+      # 主机物理IP地址 (公网 / 内网)
       # 默认: http://127.0.0.1:11211
       - WEB_DEFAULT_API_HOST=http://修改为你的主机:11211
       # -------------------------------------------
@@ -64,7 +76,16 @@ services:
       # -------------------------------------------
       # Web 服务日志级别 
       # 默认: warn - 可选: [off | error | warn | info | debug | trace] 
-      - WEB_LOG_LEVEL=warn
+      - WEB_LOG_LEVEL=error
+      # -------------------------------------------
+      # Core 服务日志级别
+      # 默认: warn - 可选: [ error | warn | info | debug | trace]
+      - CORE_LOG_LEVEL=error
+      # -------------------------------------------
+      # GeoIP 数据库文件路径 (可在 Web 控制台显示地理位置信息)
+      # 推荐: https://github.com/P3TERX/GeoLite.mmdb/releases (建议放到放到映射的目录 ./data/web 下, 记得更改对应文件名称/路径)
+      # 默认: 无
+      # - WEB_GEOIP_PATH=/app/data/web/GeoLite2-City.mmdb
     cap_add:
       - NET_ADMIN
       - NET_RAW
@@ -72,6 +93,7 @@ services:
       - /dev/net/tun:/dev/net/tun
     volumes:
       - ./data:/app/data
+      # 将写好的配置文件放在 ./data/config 下每个文件都是一个实例(.toml格式), 会跟着容器一起启动/运行
 ```
 <!-- END_COMPOSE_CORE -->
 
@@ -96,17 +118,18 @@ services:
     environment:
       - TZ=Asia/Shanghai
       # -------------------------------------------
-      # 是否禁止注册新用户 (默认用户: admin, 密码: admin)
+      # 是否允许注册新用户 (默认用户: admin, 密码: admin)
       # 默认: false
-      - WEB_DISABLE_REGISTRATION=false
+      - WEB_ENABLE_REGISTRATION=false
       # -------------------------------------------
-      # Web 前端默认连接的后端 API HOST
+      # 主机物理IP地址 (公网 / 内网)
       # 默认: http://127.0.0.1:11211
       - WEB_DEFAULT_API_HOST=http://修改为你的主机:11211
       # -------------------------------------------
       # Web 访问端口
       # 默认: 11211
       - WEB_PORT=11211
+      # -------------------------------------------
       # Web 管理服务 (RPC) 监听端口, Core 将通过此端口连接
       # 默认: 22020
       - WEB_SERVER_PORT=22020
@@ -117,7 +140,12 @@ services:
       # -------------------------------------------
       # Web 服务日志级别 
       # 默认: warn - 可选: [off | error | warn | info | debug | trace] 
-      - WEB_LOG_LEVEL=warn
+      - WEB_LOG_LEVEL=error
+      # -------------------------------------------
+      # GeoIP 数据库文件路径 (可在 Web 控制台显示地理位置信息)
+      # 推荐: https://github.com/P3TERX/GeoLite.mmdb/releases (建议放到放到映射的目录 ./data/web 下, 记得更改对应文件名称/路径)
+      # 默认: 无
+      # - WEB_GEOIP_PATH=/app/data/web/GeoLite2-City.mmdb
     volumes:
       - ./data:/app/data
 ```
