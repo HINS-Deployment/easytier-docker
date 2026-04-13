@@ -61,11 +61,11 @@ services:
       - WEB_SERVER_PROTOCOL=udp
       # -------------------------------------------
       # Web 服务日志级别 
-      # 默认: warn - 可选: [off | error | warn | info | debug | trace] 
+      # 默认: error - 可选: [off | error | warn | info | debug | trace] 
       - WEB_LOG_LEVEL=error
       # -------------------------------------------
       # Core 服务日志级别
-      # 默认: warn - 可选: [ error | warn | info | debug | trace]
+      # 默认: error - 可选: [ error | warn | info | debug | trace]
       - CORE_LOG_LEVEL=error
       # -------------------------------------------
       # GeoIP 数据库文件路径 (可在 Web 控制台显示地理位置信息)
