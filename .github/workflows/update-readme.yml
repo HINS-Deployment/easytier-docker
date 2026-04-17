@@ -4,7 +4,7 @@ on:
   push:
     paths:
       - 'compose/docker-compose.yaml'
-      - 'compose/docker-compose.web.yaml'
+
       - 'scripts/generate_readme.sh'
       - 'README.md'
   workflow_dispatch:
@@ -23,7 +23,7 @@ jobs:
         run: |
           chmod +x scripts/generate_readme.sh
           ./scripts/generate_readme.sh compose/docker-compose.yaml --update README.md --marker COMPOSE_CORE
-          ./scripts/generate_readme.sh compose/docker-compose.web.yaml --update README.md --marker COMPOSE_WEB
+
 
       - name: Check for changes commit and push
         id: commit
@@ -53,12 +53,4 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: ${{ secrets.DOCKERHUB_USERNAME }}/easytier
-          readme-filepath: ./README.md
-
-      - name: Update Docker Hub Description (Web)
-        uses: peter-evans/dockerhub-description@v4
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: ${{ secrets.DOCKERHUB_USERNAME }}/easytier-web
           readme-filepath: ./README.md
