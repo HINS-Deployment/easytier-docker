@@ -28,6 +28,18 @@ WEB_DEFAULT_API_HOST=${WEB_DEFAULT_API_HOST:-http://127.0.0.1:$WEB_API_PORT}
 WEB_GEOIP_PATH=${WEB_GEOIP_PATH:-}
 WEB_LOG_LEVEL=${WEB_LOG_LEVEL:-error}
 CORE_LOG_LEVEL=${CORE_LOG_LEVEL:-error}
+ALLOW_AUTO_CREATE_USER=${ALLOW_AUTO_CREATE_USER:-false}
+
+# OIDC Configuration
+OIDC_ISSUER_URL=${OIDC_ISSUER_URL:-}
+OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-}
+OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET:-}
+OIDC_REDIRECT_URL=${OIDC_REDIRECT_URL:-}
+OIDC_USERNAME_CLAIM=${OIDC_USERNAME_CLAIM:-}
+OIDC_SCOPES=${OIDC_SCOPES:-}
+OIDC_DISABLE_PKCE=${OIDC_DISABLE_PKCE:-false}
+OIDC_FRONTEND_BASE_URL=${OIDC_FRONTEND_BASE_URL:-}
+
 WEB_DATA_DIR=/app/data/web
 WEB_LOG_DIR=/app/data/logs-web
 CORE_LOG_DIR=/app/data/logs-core
@@ -44,7 +56,9 @@ fi
 # Web
 if [ "$WEB_ENABLE" = "true" ]; then
   # Ensure directories exist
+  mkdir -p "$WEB_DATA_DIR"
   mkdir -p "$WEB_LOG_DIR"
+  mkdir -p "$CORE_LOG_DIR"
   mkdir -p "$CONFIG_DIR"
   log "[Web] Starting easytier-web-embed..."
 
@@ -75,7 +89,46 @@ if [ "$WEB_ENABLE" = "true" ]; then
   if [ "$WEB_ENABLE_REGISTRATION" = "false" ]; then
     WEB_ARGS+=(--disable-registration)
   fi
+
+  if [ "$ALLOW_AUTO_CREATE_USER" = "true" ]; then
+    WEB_ARGS+=(--allow-auto-create-user)
+  fi
+
+  # OIDC Configuration
+  if [ -n "$OIDC_ISSUER_URL" ]; then
+    WEB_ARGS+=(--oidc-issuer-url "$OIDC_ISSUER_URL")
+  fi
+
+  if [ -n "$OIDC_CLIENT_ID" ]; then
+    WEB_ARGS+=(--oidc-client-id "$OIDC_CLIENT_ID")
+  fi
+
+  if [ -n "$OIDC_REDIRECT_URL" ]; then
+    WEB_ARGS+=(--oidc-redirect-url "$OIDC_REDIRECT_URL")
+  fi
+
+  if [ -n "$OIDC_USERNAME_CLAIM" ]; then
+    WEB_ARGS+=(--oidc-username-claim "$OIDC_USERNAME_CLAIM")
+  fi
+
+  if [ -n "$OIDC_SCOPES" ]; then
+    WEB_ARGS+=(--oidc-scopes "$OIDC_SCOPES")
+  fi
+
+  if [ "$OIDC_DISABLE_PKCE" = "true" ]; then
+    WEB_ARGS+=(--oidc-disable-pkce)
+  fi
+
+  if [ -n "$OIDC_FRONTEND_BASE_URL" ]; then
+    WEB_ARGS+=(--oidc-frontend-base-url "$OIDC_FRONTEND_BASE_URL")
+  fi
+
   log "[Web] Executing command: $(format_cmd easytier-web-embed "${WEB_ARGS[@]}")"
+
+  # Export OIDC_CLIENT_SECRET if set (for environment variable support)
+  if [ -n "$OIDC_CLIENT_SECRET" ]; then
+    export OIDC_CLIENT_SECRET
+  fi
 
   easytier-web-embed "${WEB_ARGS[@]}" &
 
