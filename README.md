@@ -1,8 +1,8 @@
 # EasyTier Docker
 
-[![Release](https://github.com/MajoSissi/easytier-docker/actions/workflows/build-release.yml/badge.svg)](https://github.com/MajoSissi/easytier-docker/actions/workflows/build-release.yml)
-[![Pre-release](https://github.com/MajoSissi/easytier-docker/actions/workflows/build-pre.yml/badge.svg)](https://github.com/MajoSissi/easytier-docker/actions/workflows/build-pre.yml)
-[![CI](https://github.com/MajoSissi/easytier-docker/actions/workflows/build-ci.yml/badge.svg)](https://github.com/MajoSissi/easytier-docker/actions/workflows/build-ci.yml)
+[![Release](https://github.com/HINS-Deployment/easytier-docker/actions/workflows/build-release.yml/badge.svg)](https://github.com/HINS-Deployment/easytier-docker/actions/workflows/build-release.yml)
+[![Pre-release](https://github.com/HINS-Deployment/easytier-docker/actions/workflows/build-pre.yml/badge.svg)](https://github.com/HINS-Deployment/easytier-docker/actions/workflows/build-pre.yml)
+[![CI](https://github.com/HINS-Deployment/easytier-docker/actions/workflows/build-ci.yml/badge.svg)](https://github.com/HINS-Deployment/easytier-docker/actions/workflows/build-ci.yml)
 
 [EasyTier](https://github.com/EasyTier/EasyTier) 发布新版本时，自动构建并发布 Docker 镜像
 
@@ -11,13 +11,13 @@
 <!-- BEGIN_COMPOSE_CORE -->
 ```yaml
 # Core + Web 控制台一体部署
-# 镜像说明: https://hub.docker.com/r/majosissi/easytier
+# 镜像说明: https://hub.docker.com/r/wuhins/easytier
 services:
   easytier:
-    # majosissi/easytier:latest  最新 Release 正式版
-    # majosissi/easytier:pre     最新 Pre-release 预览版
-    # majosissi/easytier:ci      最新 Action 构建版 (合并主线的版本, 自动更新, 稳定性不保证)
-    image: majosissi/easytier:latest
+    # wuhins/easytier:latest  最新 Release 正式版
+    # wuhins/easytier:pre     最新 Pre-release 预览版
+    # wuhins/easytier:ci      最新 Action 构建版 (合并主线的版本, 自动更新, 稳定性不保证)
+    image: wuhins/easytier:latest
     container_name: easytier
     restart: always
     # 限制容器输出日志的大小和数量, 建议启用
