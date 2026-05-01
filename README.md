@@ -108,8 +108,24 @@ docker run -d \
 
 <!-- BEGIN_COMPOSE_CORE -->
 ```yaml
-# Core + Web 控制台一体部署
-# 镜像说明: https://hub.docker.com/r/wuhins/easytier
+# ============================================
+# EasyTier Docker Compose 配置示例
+# ============================================
+# 镜像选择:
+# wuhins/easytier:latest         - 混合版 (Core + Web) - 推荐单机部署
+# wuhins/easytier:core-latest    - 纯 Core 版 (需要单独部署 Web)
+# wuhins/easytier:web-latest     - 纯 Web 版 (连接到远程 Core)
+#
+# 版本标签:
+# - Release: latest, core-latest, web-latest, <version>, <version>-core, <version>-web
+# - Pre-release: pre, core-pre, web-pre, <version-number>, <version-number>-core, <version-number>-web
+# - CI: ci, core-ci, web-ci
+# ============================================
+
+# -------------------------------------------
+# 场景 1: 混合版 - 单机部署 (Core + Web)
+# 适合个人用户或小型团队，一站式解决方案
+# -------------------------------------------
 services:
   easytier:
     # wuhins/easytier:latest  最新 Release 正式版
@@ -220,5 +236,69 @@ services:
     volumes:
       - ./data:/app/data
       # 将写好的配置文件放在 ./data/config 下每个文件都是一个实例(.toml格式), 会跟着容器一起启动/运行
+
+# -------------------------------------------
+# 场景 2: 纯 Core 版 - 分布式部署
+# 多个 Core 节点连接到一个中央 Web 控制台
+# 适用于多节点集中管理场景
+# -------------------------------------------
+# services:
+#   easytier-core:
+#     image: wuhins/easytier:core-latest
+#     container_name: easytier-core
+#     restart: always
+#     logging:
+#       driver: "json-file"
+#       options:
+#         max-size: "10m"
+#         max-file: "3"
+#     network_mode: host
+#     environment:
+#       - TZ=Asia/Shanghai
+#       - HOSTNAME=node1  # 节点名称，用于在 Web 控制台区分
+#       - CORE_LOG_LEVEL=error
+#       # 连接到远程 Web 控制台 (必须设置)
+#       - WEB_REMOTE_API=udp://web-server-ip:22020/admin
+#     cap_add:
+#       - NET_ADMIN
+#       - NET_RAW
+#     devices:
+#       - /dev/net/tun:/dev/net/tun
+#     volumes:
+#       - ./data-core:/app/data
+
+# -------------------------------------------
+# 场景 3: 纯 Web 版 - 中央管理节点
+# 单独部署 Web 控制台，管理多个远程 Core 节点
+# 适用于集中化管理场景
+# -------------------------------------------
+# services:
+#   easytier-web:
+#     image: wuhins/easytier:web-latest
+#     container_name: easytier-web
+#     restart: always
+#     logging:
+#       driver: "json-file"
+#       options:
+#         max-size: "10m"
+#         max-file: "3"
+#     ports:
+#       - "11211:11211"  # Web 访问端口
+#       - "22020:22020/udp"  # RPC 服务端口 (Core 连接用)
+#     environment:
+#       - TZ=Asia/Shanghai
+#       - WEB_PORT=11211
+#       - WEB_SERVER_PORT=22020
+#       - WEB_SERVER_PROTOCOL=udp
+#       - WEB_DEFAULT_API_HOST=http://your-server-ip:11211
+#       - WEB_ENABLE_REGISTRATION=false
+#       - WEB_LOG_LEVEL=error
+#       # OIDC 配置 (可选)
+#       # - OIDC_ISSUER_URL=
+#       # - OIDC_CLIENT_ID=
+#       # - OIDC_CLIENT_SECRET=
+#       # - OIDC_REDIRECT_URL=
+#     volumes:
+#       - ./data-web:/app/data
 ```
 <!-- END_COMPOSE_CORE -->
