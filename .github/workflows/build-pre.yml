@@ -13,10 +13,15 @@ on:
         default: ''
 
 jobs:
-  check-and-build:
+  check-version:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+
+    outputs:
+      build: ${{ steps.check_version.outputs.build }}
+      version_tag: ${{ steps.get_version.outputs.version_tag }}
+      version_number: ${{ steps.get_version.outputs.version_number }}
 
     steps:
       - name: Checkout repository
@@ -55,41 +60,65 @@ jobs:
             echo "build=false" >> $GITHUB_OUTPUT
           fi
 
+  build-and-push:
+    needs: check-version
+    if: needs.check-version.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant: [mixed, core, web]
+        include:
+          - variant: mixed
+            dockerfile: docker/Dockerfile
+            tags: |
+              ${{ secrets.DOCKERHUB_USERNAME }}/easytier:${{ github.event.inputs.custom_docker_tag || 'pre' }}
+              ${{ secrets.DOCKERHUB_USERNAME }}/easytier:${{ needs.check-version.outputs.version_number }}
+            state_file: .github/state/LAST_PRE_VERSION
+          - variant: core
+            dockerfile: docker/Dockerfile.core
+            tags: |
+              ${{ secrets.DOCKERHUB_USERNAME }}/easytier:core-pre
+              ${{ secrets.DOCKERHUB_USERNAME }}/easytier:${{ needs.check-version.outputs.version_number }}-core
+            state_file: .github/state/LAST_PRE_VERSION_CORE
+          - variant: web
+            dockerfile: docker/Dockerfile.web
+            tags: |
+              ${{ secrets.DOCKERHUB_USERNAME }}/easytier:web-pre
+              ${{ secrets.DOCKERHUB_USERNAME }}/easytier:${{ needs.check-version.outputs.version_number }}-web
+            state_file: .github/state/LAST_PRE_VERSION_WEB
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Set up QEMU
-        if: steps.check_version.outputs.build == 'true'
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        if: steps.check_version.outputs.build == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
-        if: steps.check_version.outputs.build == 'true'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push
-        if: steps.check_version.outputs.build == 'true'
+      - name: Build and push (${{ matrix.variant }})
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: docker/Dockerfile
+          file: ${{ matrix.dockerfile }}
           push: true
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           build-args: |
-            VERSION=${{ steps.get_version.outputs.version_tag }}
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/easytier:${{ github.event.inputs.custom_docker_tag || 'pre' }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/easytier:${{ steps.get_version.outputs.version_number }}
+            VERSION=${{ needs.check-version.outputs.version_tag }}
+          tags: ${{ matrix.tags }}
 
-      - name: Update LAST_PRE_VERSION file
-        if: steps.check_version.outputs.build == 'true'
+      - name: Update state file (${{ matrix.variant }})
         run: |
-          mkdir -p .github/state
-          echo "${{ steps.get_version.outputs.version_tag }}" > .github/state/LAST_PRE_VERSION
+          mkdir -p $(dirname ${{ matrix.state_file }})
+          echo "${{ needs.check-version.outputs.version_tag }}" > ${{ matrix.state_file }}
           git config --global user.name 'GitHub Actions'
           git config --global user.email 'actions@github.com'
-          git add .github/state/LAST_PRE_VERSION
-          git diff --staged --quiet || (git commit -m "Update LAST_PRE_VERSION to ${{ steps.get_version.outputs.version_tag }}" && git pull --rebase && git push)
+          git add ${{ matrix.state_file }}
+          git diff --staged --quiet || (git commit -m "Update ${{ matrix.variant }} pre-version to ${{ needs.check-version.outputs.version_tag }}" && git pull --rebase && git push)

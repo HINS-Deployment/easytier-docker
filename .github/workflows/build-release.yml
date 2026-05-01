@@ -13,10 +13,14 @@ on:
         default: ''
 
 jobs:
-  check-and-build:
+  check-version:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+
+    outputs:
+      build: ${{ steps.check_version.outputs.build }}
+      version: ${{ steps.get_version.outputs.version }}
 
     steps:
       - name: Checkout repository
@@ -54,41 +58,65 @@ jobs:
             echo "build=false" >> $GITHUB_OUTPUT
           fi
 
+  build-and-push:
+    needs: check-version
+    if: needs.check-version.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant: [mixed, core, web]
+        include:
+          - variant: mixed
+            dockerfile: docker/Dockerfile
+            tags: |
+              ${{ secrets.DOCKERHUB_USERNAME }}/easytier:latest
+              ${{ secrets.DOCKERHUB_USERNAME }}/easytier:${{ needs.check-version.outputs.version }}
+            state_file: .github/state/LAST_VERSION
+          - variant: core
+            dockerfile: docker/Dockerfile.core
+            tags: |
+              ${{ secrets.DOCKERHUB_USERNAME }}/easytier:core-latest
+              ${{ secrets.DOCKERHUB_USERNAME }}/easytier:${{ needs.check-version.outputs.version }}-core
+            state_file: .github/state/LAST_VERSION_CORE
+          - variant: web
+            dockerfile: docker/Dockerfile.web
+            tags: |
+              ${{ secrets.DOCKERHUB_USERNAME }}/easytier:web-latest
+              ${{ secrets.DOCKERHUB_USERNAME }}/easytier:${{ needs.check-version.outputs.version }}-web
+            state_file: .github/state/LAST_VERSION_WEB
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Set up QEMU
-        if: steps.check_version.outputs.build == 'true'
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        if: steps.check_version.outputs.build == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
-        if: steps.check_version.outputs.build == 'true'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push
-        if: steps.check_version.outputs.build == 'true'
+      - name: Build and push (${{ matrix.variant }})
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: docker/Dockerfile
+          file: ${{ matrix.dockerfile }}
           push: true
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           build-args: |
-            VERSION=${{ steps.get_version.outputs.version }}
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/easytier:${{ github.event.inputs.custom_docker_tag || 'latest' }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/easytier:${{ steps.get_version.outputs.version }}
+            VERSION=${{ needs.check-version.outputs.version }}
+          tags: ${{ matrix.tags }}
 
-      - name: Update LAST_VERSION file
-        if: steps.check_version.outputs.build == 'true'
+      - name: Update state file (${{ matrix.variant }})
         run: |
-          mkdir -p .github/state
-          echo "${{ steps.get_version.outputs.version }}" > .github/state/LAST_VERSION
+          mkdir -p $(dirname ${{ matrix.state_file }})
+          echo "${{ needs.check-version.outputs.version }}" > ${{ matrix.state_file }}
           git config --global user.name 'GitHub Actions'
           git config --global user.email 'actions@github.com'
-          git add .github/state/LAST_VERSION
-          git diff --staged --quiet || (git commit -m "Update LAST_VERSION to ${{ steps.get_version.outputs.version }}" && git pull --rebase && git push)
+          git add ${{ matrix.state_file }}
+          git diff --staged --quiet || (git commit -m "Update ${{ matrix.variant }} version to ${{ needs.check-version.outputs.version }}" && git pull --rebase && git push)

@@ -6,6 +6,104 @@
 
 [EasyTier](https://github.com/EasyTier/EasyTier) 发布新版本时，自动构建并发布 Docker 镜像
 
+## 镜像版本说明
+
+本项目提供三种镜像变体，适用于不同的部署场景：
+
+### 1. 混合版 (Core + Web)
+- **标签**: `latest`, `<version>` (如 v2.4.5)
+- **特点**: 同时包含 Core 和 Web 控制台，一站式解决方案
+- **适用场景**: 个人用户、小型团队、单机部署
+- **镜像**: `wuhins/easytier:latest`
+
+### 2. 纯 Core 版
+- **标签**: `core-latest`, `<version>-core` (如 v2.4.5-core)
+- **特点**: 仅包含 EasyTier Core，需要连接到远程 Web 控制台
+- **适用场景**: 多节点分布式部署、集中化管理
+- **镜像**: `wuhins/easytier:core-latest`
+
+### 3. 纯 Web 版
+- **标签**: `web-latest`, `<version>-web` (如 v2.4.5-web)
+- **特点**: 仅包含 Web 控制台，用于管理多个远程 Core 节点
+- **适用场景**: 中央管理节点、控制面板独立部署
+- **镜像**: `wuhins/easytier:web-latest`
+
+### 版本渠道
+
+- **Release (稳定版)**: `latest`, `core-latest`, `web-latest`, `<version>`, `<version>-core`, `<version>-web`
+- **Pre-release (预览版)**: `pre`, `core-pre`, `web-pre`, `<version-number>`, `<version-number>-core`, `<version-number>-web`
+- **CI (开发版)**: `ci`, `core-ci`, `web-ci` (自动更新，稳定性不保证)
+
+## 部署场景示例
+
+### 场景 1: 单机部署（混合版）
+适合个人用户或小型团队，所有功能在一个容器中运行。
+
+```bash
+docker run -d \
+  --name easytier \
+  --restart always \
+  --network host \
+  --cap-add NET_ADMIN --cap-add NET_RAW \
+  --device /dev/net/tun:/dev/net/tun \
+  -v ./data:/app/data \
+  -e TZ=Asia/Shanghai \
+  -e WEB_ENABLE=true \
+  -e WEB_USERNAME=admin \
+  wuhins/easytier:latest
+```
+
+### 场景 2: 多节点集中管理（纯 Core + 纯 Web）
+一个中央 Web 控制台管理多个 Core 节点。
+
+**中央 Web 节点:**
+```bash
+docker run -d \
+  --name easytier-web \
+  --restart always \
+  -p 11211:11211 \
+  -p 22020:22020/udp \
+  -v ./data-web:/app/data \
+  -e TZ=Asia/Shanghai \
+  -e WEB_PORT=11211 \
+  -e WEB_SERVER_PORT=22020 \
+  -e WEB_DEFAULT_API_HOST=http://your-server-ip:11211 \
+  wuhins/easytier:web-latest
+```
+
+**Core 节点 1:**
+```bash
+docker run -d \
+  --name easytier-core-node1 \
+  --restart always \
+  --network host \
+  --cap-add NET_ADMIN --cap-add NET_RAW \
+  --device /dev/net/tun:/dev/net/tun \
+  -v ./data-core1:/app/data \
+  -e TZ=Asia/Shanghai \
+  -e HOSTNAME=node1 \
+  -e WEB_REMOTE_API=udp://web-server-ip:22020/admin \
+  wuhins/easytier:core-latest
+```
+
+**Core 节点 2:**
+```bash
+docker run -d \
+  --name easytier-core-node2 \
+  --restart always \
+  --network host \
+  --cap-add NET_ADMIN --cap-add NET_RAW \
+  --device /dev/net/tun:/dev/net/tun \
+  -v ./data-core2:/app/data \
+  -e TZ=Asia/Shanghai \
+  -e HOSTNAME=node2 \
+  -e WEB_REMOTE_API=udp://web-server-ip:22020/admin \
+  wuhins/easytier:core-latest
+```
+
+### 场景 3: Docker Compose 部署
+查看 [compose/docker-compose.yaml](compose/docker-compose.yaml) 获取完整的 Compose 配置示例，包括三种场景的详细配置。
+
 ## Compose
 
 <!-- BEGIN_COMPOSE_CORE -->
