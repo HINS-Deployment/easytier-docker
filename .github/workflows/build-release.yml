@@ -68,22 +68,19 @@ jobs:
         include:
           - variant: mixed
             dockerfile: docker/Dockerfile
-            tags: |
-              ${{ secrets.DOCKERHUB_USERNAME }}/easytier:latest
-              ${{ secrets.DOCKERHUB_USERNAME }}/easytier:${{ needs.check-version.outputs.version }}
             state_file: .github/state/LAST_VERSION
+            tag_latest: latest
+            tag_version_suffix: ""
           - variant: core
             dockerfile: docker/Dockerfile.core
-            tags: |
-              ${{ secrets.DOCKERHUB_USERNAME }}/easytier:core-latest
-              ${{ secrets.DOCKERHUB_USERNAME }}/easytier:${{ needs.check-version.outputs.version }}-core
             state_file: .github/state/LAST_VERSION_CORE
+            tag_latest: core-latest
+            tag_version_suffix: "-core"
           - variant: web
             dockerfile: docker/Dockerfile.web
-            tags: |
-              ${{ secrets.DOCKERHUB_USERNAME }}/easytier:web-latest
-              ${{ secrets.DOCKERHUB_USERNAME }}/easytier:${{ needs.check-version.outputs.version }}-web
             state_file: .github/state/LAST_VERSION_WEB
+            tag_latest: web-latest
+            tag_version_suffix: "-web"
 
     steps:
       - name: Checkout repository
@@ -110,7 +107,9 @@ jobs:
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           build-args: |
             VERSION=${{ needs.check-version.outputs.version }}
-          tags: ${{ matrix.tags }}
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/easytier:${{ matrix.tag_latest }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/easytier:${{ needs.check-version.outputs.version }}${{ matrix.tag_version_suffix }}
 
       - name: Update state file (${{ matrix.variant }})
         run: |

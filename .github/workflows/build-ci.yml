@@ -186,19 +186,16 @@ jobs:
         include:
           - variant: mixed
             dockerfile: docker/Dockerfile.ci
-            tags: |
-              ${{ secrets.DOCKERHUB_USERNAME }}/easytier:${{ github.event.inputs.custom_docker_tag || 'ci' }}
             state_file: .github/state/LAST_CI_VERSION
+            tag_channel: ci
           - variant: core
             dockerfile: docker/Dockerfile.ci
-            tags: |
-              ${{ secrets.DOCKERHUB_USERNAME }}/easytier:core-ci
             state_file: .github/state/LAST_CI_VERSION_CORE
+            tag_channel: core-ci
           - variant: web
             dockerfile: docker/Dockerfile.ci
-            tags: |
-              ${{ secrets.DOCKERHUB_USERNAME }}/easytier:web-ci
             state_file: .github/state/LAST_CI_VERSION_WEB
+            tag_channel: web-ci
 
     steps:
       - name: Checkout repository
@@ -229,7 +226,8 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: true
           platforms: linux/amd64,linux/arm64,linux/arm/v7
-          tags: ${{ matrix.tags }}
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/easytier:${{ github.event.inputs.custom_docker_tag || matrix.tag_channel }}
 
       - name: Update state file (${{ matrix.variant }})
         run: |
